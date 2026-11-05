@@ -2,7 +2,7 @@
 _Updated: 2026-11-05_
 
 ## Now
-v1 built. Waiting for a real webcam test by the user.
+v1 live on GitHub Pages (https://gabiwan24.github.io/airpiano/, repo gabiwan24/airpiano, deploys from `main` root on every push). Waiting for a real webcam test by the user.
 
 ## Works
 - Organ: 49 permanent tonewheel oscillators, 4 drawbar presets, Leslie (off/slow/fast), reverb, tanh limiter
