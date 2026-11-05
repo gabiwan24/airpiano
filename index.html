@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finger Organ</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
+  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/vision_bundle.mjs" crossorigin>
+  <link rel="stylesheet" href="src/styles/tokens.css">
+  <link rel="stylesheet" href="src/styles/components.css">
+  <link rel="stylesheet" href="src/styles/app.css">
+  <script type="module" src="src/main.js"></script>
+</head>
+<body>
+  <header class="bar">
+    <h1 class="title">Finger Organ</h1>
+    <span class="badge" id="status">Bereit</span>
+    <span class="badge mute" id="mute" title="Leertaste schaltet stumm / laut">Stumm</span>
+    <dl class="hud tnum" aria-label="Leistung">
+      <div><dt>Kamera</dt><dd id="hud-fps">–</dd></div>
+      <div><dt>Erkennung</dt><dd id="hud-detect">–</dd></div>
+      <div><dt>Audio</dt><dd id="hud-audio">–</dd></div>
+    </dl>
+  </header>
+
+  <main class="layout">
+    <section class="stage" aria-label="Kamera">
+      <video id="video" playsinline muted></video>
+      <canvas id="overlay"></canvas>
+      <div class="chord" aria-live="polite">
+        <div class="chord-name" id="chord-name">–</div>
+        <div class="chord-sub"><span id="chord-roman"></span><span id="chord-notes" class="mono"></span></div>
+      </div>
+      <div class="start" id="start">
+        <button class="btn primary cta" id="start-btn" type="button">
+          <span class="swap"><span>Kamera &amp; Ton starten</span><span class="loading"><span class="spinner"></span>Lädt …</span></span>
+        </button>
+        <p class="start-hint" id="start-hint">Ohne Kamera: Tasten 1–5 spielen Akkorde.</p>
+      </div>
+    </section>
+
+    <aside class="panel scroll" aria-label="Einstellungen">
+      <div class="opt-rows">
+        <div class="opt-row key-row">
+          <span class="opt-label">Tonart</span>
+          <div class="keys" id="keys" role="radiogroup" aria-label="Tonart"></div>
+        </div>
+        <div class="opt-row">
+          <span class="opt-label">Register</span>
+          <div class="seg" role="radiogroup" data-setting="preset">
+            <span class="sel-marker"></span>
+            <button type="button" role="radio" data-value="jazz">Jazz</button>
+            <button type="button" role="radio" data-value="gospel">Gospel</button>
+            <button type="button" role="radio" data-value="church">Kirche</button>
+            <button type="button" role="radio" data-value="full">Voll</button>
+          </div>
+        </div>
+        <div class="opt-row">
+          <span class="opt-label">Leslie</span>
+          <div class="seg" role="radiogroup" data-setting="leslie">
+            <span class="sel-marker"></span>
+            <button type="button" role="radio" data-value="off">Aus</button>
+            <button type="button" role="radio" data-value="slow">Langsam</button>
+            <button type="button" role="radio" data-value="fast">Schnell</button>
+          </div>
+        </div>
+        <div class="opt-row">
+          <span class="opt-label">Spielhand</span>
+          <div class="seg" role="radiogroup" data-setting="playSide">
+            <span class="sel-marker"></span>
+            <button type="button" role="radio" data-value="right">Rechts</button>
+            <button type="button" role="radio" data-value="left">Links</button>
+          </div>
+        </div>
+        <div class="opt-row">
+          <span class="opt-label">Reaktion</span>
+          <div class="seg" role="radiogroup" data-setting="frames">
+            <span class="sel-marker"></span>
+            <button type="button" role="radio" data-value="1">Sofort</button>
+            <button type="button" role="radio" data-value="2">Normal</button>
+            <button type="button" role="radio" data-value="4">Ruhig</button>
+          </div>
+        </div>
+        <div class="opt-row">
+          <span class="opt-label">Schweller</span>
+          <div class="opt-control-end">
+            <span class="hint">Handhöhe = Lautstärke</span>
+            <label class="check switch"><input type="checkbox" id="swell" checked><span class="sr-only">Schweller</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <h2 class="legend-title">Spielhand · Finger</h2>
+        <ol class="legend-list" id="legend-play"></ol>
+        <h2 class="legend-title">Zweite Hand · Finger</h2>
+        <ol class="legend-list" id="legend-mod"></ol>
+        <p class="hint">Faust oder keine Hand = Stille. Leertaste = stumm / laut.</p>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

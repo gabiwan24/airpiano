@@ -1,0 +1,8 @@
+# Decisions
+<!-- one line each: YYYY-MM-DD – decision – why. Append only. -->
+2026-11-05 – Vanilla JS + static server, no framework/bundler – least overhead per frame, nothing to build.
+2026-11-05 – MediaPipe HandLandmarker (GPU, VIDEO mode, requestVideoFrameCallback, 640×480 @ 60 fps request) – fastest in-browser hand tracking; one detection per new frame.
+2026-11-05 – Raw Web Audio instead of Tone.js; permanent oscillator per key, PeriodicWave from drawbars – note-on is only a gain change, no allocation.
+2026-11-05 – No DynamicsCompressorNode, tanh WaveShaper limiter; Leslie/reverb as parallel wet paths – compressor look-ahead and delay lines would add latency to the dry signal.
+2026-11-05 – Finger count mapping: play hand 1–5 = I IV V vi ii, second hand = 7/sus4/sus2/add9/parallel – most-used chords on the easiest counts.
+2026-11-05 – Hand roles by image position, not MediaPipe handedness label – label depends on mirroring and flips; position is unambiguous.
