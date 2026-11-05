@@ -59,14 +59,14 @@ let prevStates = [null, null];
 
 function drawHand(lm, states) {
   const w = canvas.width, h = canvas.height;
-  ctx2d.strokeStyle = "rgba(255,255,255,0.55)";
-  ctx2d.lineWidth = 2;
+  ctx2d.strokeStyle = "rgba(255,255,255,0.9)"; // video is dimmed to 10 %, so the skeleton carries the picture
+  ctx2d.lineWidth = 3;
   ctx2d.beginPath();
   for (const [a, b] of BONES) { ctx2d.moveTo(lm[a].x * w, lm[a].y * h); ctx2d.lineTo(lm[b].x * w, lm[b].y * h); }
   ctx2d.stroke();
   TIPS.forEach((t, i) => {
-    ctx2d.fillStyle = states[i] ? tipColor : "rgba(255,255,255,0.35)";
-    ctx2d.fillRect(lm[t].x * w - 6, lm[t].y * h - 6, 12, 12);
+    ctx2d.fillStyle = states[i] ? tipColor : "rgba(255,255,255,0.5)";
+    ctx2d.fillRect(lm[t].x * w - 7, lm[t].y * h - 7, 14, 14);
   });
 }
 
