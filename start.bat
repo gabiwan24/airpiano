@@ -20,6 +20,6 @@ start "" /b cmd /c "timeout /t 2 /nobreak >nul & start "" http://localhost:%PORT
 
 REM ==== START COMMAND (per project) ====
 REM camera access needs a secure context: http://localhost counts as secure
-python -m http.server %PORT% --bind 127.0.0.1
+python scripts\serve.py %PORT%
 
 endlocal

@@ -14,7 +14,7 @@ export const PRESETS = {
 };
 export const LESLIE = { off: 0, slow: 0.8, fast: 6.7 }; // rotor speed in Hz
 
-const NOTE_LO = 36, NOTE_HI = 84;
+const NOTE_LO = 36, NOTE_HI = 96; // octave chords (8–10 fingers) reach up to G6
 const ATTACK_TC = 0.003; // time constant (s): ~10 ms to full level, no click
 const RELEASE_TC = 0.012;
 

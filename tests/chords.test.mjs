@@ -1,53 +1,73 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chordFromGesture, voice, MODIFIERS } from "../src/chords.js";
+import { chordFromGesture, voiceStep, nextDegrees, stepOf, MODIFIERS } from "../src/chords.js";
 
-const name = (key, p, m = 0) => chordFromGesture(key, p, m)?.name;
+const name = (key, n, mod = "") => chordFromGesture(key, n, mod)?.name;
+const names = (key, mod = "") => Array.from({ length: 10 }, (_, i) => name(key, i + 1, mod));
 
-test("C major: finger counts map to I IV V vi ii", () => {
-  assert.deepEqual([1, 2, 3, 4, 5].map((p) => name(0, p)), ["C", "F", "G", "Am", "Dm"]);
+test("1–10 fingers walk the full scale, 8–10 one octave up", () => {
+  assert.deepEqual(names(0), ["C", "Dm", "Em", "F", "G", "Am", "B°", "C′", "Dm′", "Em′"]);
+  assert.deepEqual(names(7).slice(0, 7), ["G", "Am", "Bm", "C", "D", "Em", "F♯°"]);
+  assert.equal(name(5, 4), "B♭");
+  assert.equal(chordFromGesture(0, 7).roman, "vii°");
 });
 
-test("other keys and flat spelling", () => {
-  assert.deepEqual([1, 2, 3, 4, 5].map((p) => name(7, p)), ["G", "C", "D", "Em", "Am"]);
-  assert.equal(name(5, 2), "B♭");
-  assert.equal(name(3, 1), "E♭");
+test("silence outside 1–10", () => {
+  assert.equal(chordFromGesture(0, 0), null);
+  assert.equal(chordFromGesture(0, 11), null);
+  assert.equal(stepOf(0), null);
+  assert.deepEqual(voiceStep(null).notes, []);
 });
 
-test("modifiers", () => {
-  assert.equal(name(0, 3, 1), "G7");
-  assert.equal(name(0, 1, 1), "Cmaj7");
-  assert.equal(name(0, 4, 1), "Am7");
-  assert.equal(name(0, 1, 2), "Csus4");
-  assert.equal(name(0, 1, 3), "Csus2");
-  assert.equal(name(0, 1, 4), "Cadd9");
-  assert.equal(name(0, 4, 4), "Amadd9");
-  assert.equal(name(0, 1, 5), "Cm");
-  assert.equal(name(0, 4, 5), "A");
+test("clicked variants", () => {
+  assert.equal(name(0, 5, "7"), "G7");
+  assert.equal(name(0, 1, "7"), "Cmaj7");
+  assert.equal(name(0, 6, "7"), "Am7");
+  assert.equal(name(0, 7, "7"), "Bm7♭5");
+  assert.equal(name(0, 1, "sus4"), "Csus4");
+  assert.equal(name(0, 1, "sus2"), "Csus2");
+  assert.equal(name(0, 1, "add9"), "Cadd9");
+  assert.equal(name(0, 6, "add9"), "Amadd9");
+  assert.equal(name(0, 1, "parallel"), "Cm");
+  assert.equal(name(0, 6, "parallel"), "A");
+  assert.equal(name(0, 8, "7"), "Cmaj7′");
 });
 
-test("silence for fist / no hand", () => {
-  assert.equal(chordFromGesture(0, 0, 3), null);
-  assert.deepEqual(voice(null).notes, []);
+test("octave chords sound exactly 12 semitones higher", () => {
+  const base = voiceStep(chordFromGesture(0, 1), [60, 64, 67]);
+  const up = voiceStep(chordFromGesture(0, 8), [60, 64, 67]);
+  assert.deepEqual(up.notes, base.notes.map((n) => n + 12));
 });
 
-test("every key × gesture has a known name and a playable voicing", () => {
+test("every key × count × variant has a known name and a voicing in the organ range", () => {
   for (let key = 0; key < 12; key++)
-    for (let p = 1; p <= 5; p++)
-      for (let m = 0; m < MODIFIERS.length; m++) {
-        const c = chordFromGesture(key, p, m);
-        assert.ok(!c.name.includes("?"), `${key}/${p}/${m} → ${c.name}`);
-        const v = voice(c, [60, 64, 67]);
-        assert.ok(v.notes.every((n) => n >= 36 && n <= 84), `range ${v.notes}`);
+    for (let n = 1; n <= 10; n++)
+      for (const mod of MODIFIERS) {
+        const c = chordFromGesture(key, n, mod);
+        assert.ok(!c.name.includes("?"), `${key}/${n}/${mod} → ${c.name}`);
+        const v = voiceStep(c, [60, 64, 67]);
+        assert.ok(v.notes.every((x) => x >= 36 && x <= 96), `range ${v.notes}`);
         assert.equal(v.bass % 12, c.rootPc);
         const pcs = new Set(c.intervals.map((i) => (c.rootPc + i) % 12));
-        assert.deepEqual(new Set(v.upper.map((n) => n % 12)), pcs);
+        assert.deepEqual(new Set(v.upper.map((x) => x % 12)), pcs);
       }
 });
 
 test("voice leading C → F moves the upper voices by at most 4 semitones in total", () => {
-  const c = voice(chordFromGesture(0, 1), null);
-  const f = voice(chordFromGesture(0, 2), c.upper);
+  const c = voiceStep(chordFromGesture(0, 1), null);
+  const f = voiceStep(chordFromGesture(0, 4), c.upper);
   const moved = f.upper.reduce((s, n) => s + Math.min(...c.upper.map((x) => Math.abs(x - n))), 0);
   assert.ok(moved <= 4, `moved ${moved}: ${c.upper} → ${f.upper}`);
+});
+
+test("next-chord suggestions follow functional harmony", () => {
+  assert.deepEqual(nextDegrees(4).strong, [0]); // V → I
+  assert.ok(nextDegrees(4).good.includes(5)); // V → vi (deceptive)
+  assert.deepEqual(nextDegrees(1).strong, [4]); // ii → V
+  assert.deepEqual(nextDegrees(6).strong, [0]); // vii° → I
+  for (let d = 0; d < 7; d++) {
+    const { strong, good } = nextDegrees(d);
+    assert.ok(strong.length > 0, `degree ${d} has a strong follow-up`);
+    assert.ok(![...strong, ...good].includes(d), `degree ${d} does not suggest itself`);
+  }
 });

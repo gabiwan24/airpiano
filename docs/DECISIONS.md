@@ -6,3 +6,6 @@
 2026-11-05 – No DynamicsCompressorNode, tanh WaveShaper limiter; Leslie/reverb as parallel wet paths – compressor look-ahead and delay lines would add latency to the dry signal.
 2026-11-05 – Finger count mapping: play hand 1–5 = I IV V vi ii, second hand = 7/sus4/sus2/add9/parallel – most-used chords on the easiest counts.
 2026-11-05 – Hand roles by image position, not MediaPipe handedness label – label depends on mirroring and flips; position is unambiguous.
+2026-11-05 – Fingers of both hands are summed: 1–7 = I…vii°, 8–10 = I ii iii an octave up; variant only by click – user wants the full scale playable by gesture, variants deliberately not by hand.
+2026-11-05 – "Fits next" suggestions from the classical root-movement chart (iii→vi→ii/IV→V/vii°→I) – standard functional harmony, predictable for players.
+2026-11-05 – Dev server scripts/serve.py with Cache-Control: no-store – http.server let the browser serve stale CSS after edits.

@@ -6,11 +6,26 @@ const FLAT = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B�
 const FLAT_KEYS = new Set([5, 10, 3, 8, 1, 6]); // F B♭ E♭ A♭ D♭ G♭
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
-/** Play-hand finger count → scale degree (0-based). Ordered by how often the chord occurs in pop/gospel songs. */
-export const DEGREE_BY_FINGERS = { 1: 0, 2: 3, 3: 4, 4: 5, 5: 1 }; // I IV V vi ii
+/** Total finger count 1–10 → scale degree (0-based) + octave: 1–7 = I…vii°, 8–10 = I ii iii one octave up. */
+export const stepOf = (count) => (count >= 1 && count <= 10 ? { degree: (count - 1) % 7, octave: count > 7 ? 1 : 0 } : null);
 
-/** Modifier-hand finger count → chord variant. */
+/** Chord variants, chosen by click. */
 export const MODIFIERS = ["", "7", "sus4", "sus2", "add9", "parallel"];
+
+/**
+ * Which degree tends to follow which in major (classical root-movement chart):
+ * iii → vi → ii/IV → V/vii° → I, I goes anywhere; V may also go deceptively to vi.
+ */
+const NEXT = {
+  0: { strong: [3, 4], good: [5, 1, 2] },
+  1: { strong: [4], good: [6, 3] },
+  2: { strong: [5], good: [3] },
+  3: { strong: [4, 0], good: [1, 6] },
+  4: { strong: [0], good: [5, 3] },
+  5: { strong: [1, 3], good: [4, 2] },
+  6: { strong: [0], good: [2, 4] },
+};
+export const nextDegrees = (degree) => NEXT[degree] ?? { strong: [], good: [] };
 
 export const keyName = (pc) => (FLAT_KEYS.has(pc) ? FLAT : SHARP)[pc];
 
@@ -46,6 +61,7 @@ export function buildChord(keyPc, degree, modifier = "") {
   const isMinorish = third === 3;
   const roman = isMinorish ? ROMAN[degree].toLowerCase() : ROMAN[degree];
   return {
+    degree,
     rootPc,
     intervals,
     name: (FLAT_KEYS.has(keyPc) ? FLAT : SHARP)[rootPc] + suffix,
@@ -91,9 +107,20 @@ function movement(a, b) {
   return sum;
 }
 
-/** Map play-hand + modifier-hand finger counts to a chord. playCount 0 or null → silence. */
-export function chordFromGesture(keyPc, playCount, modCount = 0) {
-  const degree = DEGREE_BY_FINGERS[playCount];
-  if (degree === undefined) return null;
-  return buildChord(keyPc, degree, MODIFIERS[modCount] ?? "");
+/** Total finger count (1–10) + clicked variant → chord. 0 → silence. Octave chords carry octave = 1. */
+export function chordFromGesture(keyPc, count, modifier = "") {
+  const step = stepOf(count);
+  if (!step) return null;
+  const chord = buildChord(keyPc, step.degree, modifier);
+  chord.octave = step.octave;
+  if (step.octave) { chord.name += "′"; chord.roman += "′"; }
+  return chord;
+}
+
+/** Voicing incl. octave shift; voice leading is computed in the base register so it stays smooth across octaves. */
+export function voiceStep(chord, prevUpper = null) {
+  const v = voice(chord, prevUpper);
+  if (!chord?.octave) return v;
+  const up = (n) => n + 12 * chord.octave;
+  return { bass: up(v.bass), upper: v.upper, notes: v.notes.map(up) };
 }

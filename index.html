@@ -31,12 +31,16 @@
       <div class="chord" aria-live="polite">
         <div class="chord-name" id="chord-name">–</div>
         <div class="chord-sub"><span id="chord-roman"></span><span id="chord-notes" class="mono"></span></div>
+        <dl class="chord-next empty" id="chord-next">
+          <div><dt>Passt als Nächstes</dt><dd id="next-strong"></dd></div>
+          <div><dt>Auch gut</dt><dd id="next-good"></dd></div>
+        </dl>
       </div>
       <div class="start" id="start">
         <button class="btn primary cta" id="start-btn" type="button">
           <span class="swap"><span>Kamera &amp; Ton starten</span><span class="loading"><span class="spinner"></span>Lädt …</span></span>
         </button>
-        <p class="start-hint" id="start-hint">Ohne Kamera: Tasten 1–5 spielen Akkorde.</p>
+        <p class="start-hint" id="start-hint">Ohne Kamera: Tasten 1–9 und 0 (= 10) spielen Akkorde.</p>
       </div>
     </section>
 
@@ -45,6 +49,10 @@
         <div class="opt-row key-row">
           <span class="opt-label">Tonart</span>
           <div class="keys" id="keys" role="radiogroup" aria-label="Tonart"></div>
+        </div>
+        <div class="opt-row key-row">
+          <span class="opt-label">Variante</span>
+          <div class="keys variants" id="variants" role="radiogroup" aria-label="Akkord-Variante"></div>
         </div>
         <div class="opt-row">
           <span class="opt-label">Register</span>
@@ -66,14 +74,6 @@
           </div>
         </div>
         <div class="opt-row">
-          <span class="opt-label">Spielhand</span>
-          <div class="seg" role="radiogroup" data-setting="playSide">
-            <span class="sel-marker"></span>
-            <button type="button" role="radio" data-value="right">Rechts</button>
-            <button type="button" role="radio" data-value="left">Links</button>
-          </div>
-        </div>
-        <div class="opt-row">
           <span class="opt-label">Reaktion</span>
           <div class="seg" role="radiogroup" data-setting="frames">
             <span class="sel-marker"></span>
@@ -92,11 +92,10 @@
       </div>
 
       <div class="legend">
-        <h2 class="legend-title">Spielhand · Finger</h2>
+        <h2 class="legend-title">Finger · beide Hände zusammen</h2>
         <ol class="legend-list" id="legend-play"></ol>
-        <h2 class="legend-title">Zweite Hand · Finger</h2>
-        <ol class="legend-list" id="legend-mod"></ol>
-        <p class="hint">Faust oder keine Hand = Stille. Leertaste = stumm / laut.</p>
+        <p class="legend-key"><span class="sw strong"></span>passt als Nächstes <span class="sw good"></span>auch gut</p>
+        <p class="hint">8–10 = Stufe I–iii eine Oktave höher. Fäuste oder keine Hand = Stille. Leertaste = stumm / laut.</p>
       </div>
     </aside>
   </main>

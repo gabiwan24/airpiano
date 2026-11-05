@@ -125,5 +125,5 @@ html.scroll-lock { overflow: hidden; }       /* modal/drawer open: page stops sc
 /* App tokens (finger organ): the camera stage is a dark video surface in both themes, so its colours are fixed. */
 :root {
   --stage-bg: #000000; --stage-ink: #ffffff; --stage-ink-muted: rgb(255 255 255 / 0.85);
-  --stage-scrim: rgb(0 0 0 / 0.55); --stage-shadow: rgb(0 0 0 / 0.6); --stage-error: #ff8a8a;
+  --stage-scrim: rgb(0 0 0 / 0.55); --stage-shadow: rgb(0 0 0 / 0.6);
 }

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extendedFingers, countOf, assignRoles, Stabilizer, TH } from "../src/gesture.js";
+import { extendedFingers, countOf, sortByX, Stabilizer, TH } from "../src/gesture.js";
 
 // Synthetic hand in world coordinates (metres), wrist at origin, fingers pointing up (-y).
 const MCP = { 5: [-0.03, -0.09], 9: [-0.01, -0.095], 13: [0.01, -0.09], 17: [0.03, -0.08] };
@@ -39,12 +39,18 @@ test("hysteresis: a finger between the thresholds keeps its previous state", () 
   assert.equal(extendedFingers(lm, [false, true, false, false, false])[1], true);
 });
 
-test("roles: one hand plays; two hands split by image position", () => {
+test("hands are ordered by image position so hysteresis state follows the same hand", () => {
   const a = { landmarks: [p(0.3, 0.5)] }, b = { landmarks: [p(0.7, 0.5)] };
-  assert.equal(assignRoles([b]).play, b);
-  assert.deepEqual(assignRoles([b, a], "right"), { play: a, mod: b });
-  assert.deepEqual(assignRoles([a, b], "left"), { play: b, mod: a });
-  assert.deepEqual(assignRoles([]), { play: null, mod: null });
+  assert.deepEqual(sortByX([b, a]), [a, b]);
+  assert.deepEqual(sortByX([a, b]), [a, b]);
+  assert.deepEqual(sortByX([]), []);
+});
+
+test("two hands add up to 10", () => {
+  const open = hand([1.7, OPEN, OPEN, OPEN, OPEN]);
+  const three = hand([FIST, OPEN, OPEN, OPEN, FIST]);
+  assert.equal(countOf(extendedFingers(open)) * 2, 10);
+  assert.equal(countOf(extendedFingers(open)) + countOf(extendedFingers(three)), 8);
 });
 
 test("stabilizer commits after N identical frames and ignores single-frame flicker", () => {

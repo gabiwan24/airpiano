@@ -32,17 +32,10 @@ export function extendedFingers(lm, prev = null) {
 export const countOf = (states) => states.reduce((n, s) => n + (s ? 1 : 0), 0);
 
 /**
- * Split detected hands into play / modifier roles.
- * One hand → always the play hand. Two hands → by image position: in the raw (unmirrored) camera
- * frame the user's right hand has the smaller x. Position is more robust than MediaPipe's handedness label.
- * hands: [{ landmarks, world }] ; playSide: "right" | "left"
+ * Order hands by image position (wrist x), so per-hand hysteresis state stays attached to the same hand
+ * across frames. MediaPipe's own result order is not stable. hands: [{ landmarks, world }]
  */
-export function assignRoles(hands, playSide = "right") {
-  if (!hands.length) return { play: null, mod: null };
-  if (hands.length === 1) return { play: hands[0], mod: null };
-  const [a, b] = hands[0].landmarks[WRIST].x < hands[1].landmarks[WRIST].x ? [hands[0], hands[1]] : [hands[1], hands[0]];
-  return playSide === "right" ? { play: a, mod: b } : { play: b, mod: a };
-}
+export const sortByX = (hands) => [...hands].sort((a, b) => a.landmarks[WRIST].x - b.landmarks[WRIST].x);
 
 /** Commits a value only after it was seen `frames` times in a row (frames = 1 → instant). */
 export class Stabilizer {

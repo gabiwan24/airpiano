@@ -1,36 +1,52 @@
-import { chordFromGesture, voice, keyName, DEGREE_BY_FINGERS, MODIFIERS, buildChord } from "./chords.js";
-import { extendedFingers, countOf, assignRoles, Stabilizer } from "./gesture.js";
+import { chordFromGesture, voiceStep, keyName, nextDegrees } from "./chords.js";
+import { extendedFingers, countOf, sortByX, Stabilizer } from "./gesture.js";
 import { Organ } from "./organ.js";
 import { slideMarker } from "./motion.js";
 
 const $ = (id) => document.getElementById(id);
-const settings = { key: 0, preset: "jazz", leslie: "slow", playSide: "right", frames: 2, swell: true };
+const settings = { key: 0, variant: "", preset: "jazz", leslie: "slow", frames: 2, swell: true };
 
 let organ = null;
 let upper = null; // previous upper voicing for voice leading
-let lastGesture = "0|0";
+let count = 0; // committed finger count (0 = silence)
+let lastChord = null; // last sounding chord – suggestions stay visible after release
 const stab = new Stabilizer(settings.frames);
 
 // ---------- chord output ----------
 const NOTE = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
-function play(playCount, modCount) {
-  const chord = chordFromGesture(settings.key, playCount, modCount);
-  const v = voice(chord, upper);
-  if (chord) upper = v.upper;
+function play(n) {
+  count = n;
+  const chord = chordFromGesture(settings.key, n, settings.variant);
+  const v = voiceStep(chord, upper);
+  if (chord) { upper = v.upper; lastChord = chord; }
   organ?.setNotes(v.notes);
   $("chord-name").textContent = chord ? chord.name : "–";
   $("chord-name").classList.toggle("live", !!chord);
   $("chord-roman").textContent = chord ? chord.roman : "";
-  $("chord-notes").textContent = chord ? v.notes.map((n) => NOTE[n % 12]).join(" ") : "";
-  markLegend(playCount, chord ? modCount : -1);
+  $("chord-notes").textContent = chord ? v.notes.map((x) => NOTE[x % 12]).join(" ") : "";
+  showSuggestions();
 }
 
-function applyGesture(playCount, modCount) {
-  const g = stab.push(`${playCount}|${modCount}`);
-  if (g === undefined || g === lastGesture) return;
-  lastGesture = g;
-  const [p, m] = g.split("|").map(Number);
-  play(p, m);
+function applyCount(n) {
+  const c = stab.push(n);
+  if (c === undefined || c === count) return;
+  play(c);
+}
+
+// ---------- "fits next" suggestions ----------
+const nameOf = (degree) => chordFromGesture(settings.key, degree + 1, settings.variant).name;
+function showSuggestions() {
+  const next = lastChord ? nextDegrees(lastChord.degree) : { strong: [], good: [] };
+  const fmt = (ds) => ds.map((d) => `${nameOf(d)} (${d + 1})`).join(" · ");
+  $("next-strong").textContent = fmt(next.strong);
+  $("next-good").textContent = fmt(next.good);
+  $("chord-next").classList.toggle("empty", !lastChord);
+  [...$("legend-play").children].forEach((el, i) => {
+    const d = i % 7; // 8–10 are the same chords an octave up
+    el.classList.toggle("on", i + 1 === count);
+    el.classList.toggle("strong", next.strong.includes(d));
+    el.classList.toggle("good", next.good.includes(d));
+  });
 }
 
 // ---------- camera loop ----------
@@ -38,10 +54,10 @@ const canvas = $("overlay");
 const ctx2d = canvas.getContext("2d");
 const BONES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]];
 const TIPS = [4, 8, 12, 16, 20];
-let colors;
-const prevStates = { play: null, mod: null };
+let tipColor;
+let prevStates = [null, null];
 
-function drawHand(lm, states, color) {
+function drawHand(lm, states) {
   const w = canvas.width, h = canvas.height;
   ctx2d.strokeStyle = "rgba(255,255,255,0.55)";
   ctx2d.lineWidth = 2;
@@ -49,28 +65,26 @@ function drawHand(lm, states, color) {
   for (const [a, b] of BONES) { ctx2d.moveTo(lm[a].x * w, lm[a].y * h); ctx2d.lineTo(lm[b].x * w, lm[b].y * h); }
   ctx2d.stroke();
   TIPS.forEach((t, i) => {
-    ctx2d.fillStyle = states[i] ? color : "rgba(255,255,255,0.35)";
+    ctx2d.fillStyle = states[i] ? tipColor : "rgba(255,255,255,0.35)";
     ctx2d.fillRect(lm[t].x * w - 6, lm[t].y * h - 6, 12, 12);
   });
 }
 
 function onResult(result, detectMs) {
-  const hands = result.landmarks.map((landmarks, i) => ({ landmarks, world: result.worldLandmarks[i] }));
-  const { play: ph, mod: mh } = assignRoles(hands, settings.playSide);
-  const ps = ph ? extendedFingers(ph.world, prevStates.play) : null;
-  const ms = mh ? extendedFingers(mh.world, prevStates.mod) : null;
-  prevStates.play = ps; prevStates.mod = ms;
+  const hands = sortByX(result.landmarks.map((landmarks, i) => ({ landmarks, world: result.worldLandmarks[i] })));
+  const states = hands.map((hd, i) => extendedFingers(hd.world, prevStates[i]));
+  prevStates = [states[0] ?? null, states[1] ?? null];
 
-  applyGesture(ps ? countOf(ps) : 0, ms ? countOf(ms) : 0);
+  applyCount(states.reduce((n, s) => n + countOf(s), 0));
 
-  if (ph && settings.swell && organ) {
-    const y = ph.landmarks[9].y; // middle-finger knuckle: stable while fingers change
+  if (hands.length && settings.swell && organ) {
+    // middle-finger knuckle: stable while fingers change; two hands → their average height
+    const y = hands.reduce((s, hd) => s + hd.landmarks[9].y, 0) / hands.length;
     organ.setExpression(Math.min(1, Math.max(0, (0.85 - y) / 0.6)));
   }
 
   ctx2d.clearRect(0, 0, canvas.width, canvas.height);
-  if (ph) drawHand(ph.landmarks, ps, colors.play);
-  if (mh) drawHand(mh.landmarks, ms, colors.mod);
+  hands.forEach((hd, i) => drawHand(hd.landmarks, states[i]));
   stats(detectMs);
 }
 
@@ -123,7 +137,7 @@ async function start() {
   } catch (err) {
     console.error(err);
     const msg = err?.name === "NotAllowedError" ? "Kamerazugriff wurde abgelehnt. Bitte in der Adressleiste erlauben."
-      : err?.name === "NotFoundError" ? "Keine Kamera gefunden. Tasten 1–5 spielen trotzdem."
+      : err?.name === "NotFoundError" ? "Keine Kamera gefunden. Tasten 1–9 und 0 spielen trotzdem."
       : `Start fehlgeschlagen: ${err?.message || err}`;
     $("start-hint").textContent = msg;
     $("start-hint").classList.add("error");
@@ -148,62 +162,54 @@ addEventListener("keydown", (e) => {
 });
 addEventListener("keyup", (e) => { if (e.code === "Space") e.preventDefault(); });
 
-// ---------- keyboard fallback: 1–5 play while held ----------
-const held = new Set();
+// ---------- keyboard fallback: 1–9, 0 = 10, play while held ----------
+const held = [];
+const keyCount = (k) => (k === "0" ? 10 : +k);
 addEventListener("keydown", (e) => {
-  if (e.repeat || !/^[1-5]$/.test(e.key) || e.target.closest?.("input")) return;
+  if (e.repeat || !/^[0-9]$/.test(e.key)) return;
   ensureOrgan();
-  held.add(+e.key);
-  play(+e.key, 0);
+  held.push(keyCount(e.key));
+  play(keyCount(e.key));
 });
 addEventListener("keyup", (e) => {
-  if (!held.delete(+e.key)) return;
-  if (held.size) play([...held].pop(), 0); else play(0, 0);
+  if (!/^[0-9]$/.test(e.key)) return;
+  const i = held.indexOf(keyCount(e.key));
+  if (i < 0) return;
+  held.splice(i, 1);
+  play(held.length ? held[held.length - 1] : 0);
 });
 
 // ---------- settings UI ----------
-function buildKeys() {
-  const box = $("keys");
-  for (let pc = 0; pc < 12; pc++) {
+/** Separate choice buttons (gaps, no sliding marker): key and variant grids. */
+function choiceGrid(box, items, current, onPick) {
+  box.replaceChildren(...items.map(([value, label]) => {
     const b = document.createElement("button");
     b.type = "button";
     b.setAttribute("role", "radio");
-    b.textContent = keyName(pc);
-    b.dataset.pc = pc;
-    b.addEventListener("click", () => setKey(pc));
-    box.append(b);
-  }
+    b.textContent = label;
+    b.dataset.value = value;
+    b.addEventListener("click", () => { mark(value); onPick(value); });
+    return b;
+  }));
+  const mark = (v) => { for (const b of box.children) b.setAttribute("aria-checked", String(b.dataset.value === String(v))); };
+  mark(current);
 }
 
-function setKey(pc) {
-  settings.key = pc;
-  for (const b of $("keys").children) b.setAttribute("aria-checked", String(+b.dataset.pc === pc));
-  buildLegend();
-  const [p, m] = lastGesture.split("|").map(Number);
-  if (p) play(p, m);
+function rebuild() {
+  // legend names depend on key + variant
+  $("legend-play").replaceChildren(...Array.from({ length: 10 }, (_, i) => {
+    const el = document.createElement("li");
+    el.innerHTML = `<span class="n">${i + 1}</span><span class="v"></span>`;
+    el.lastChild.textContent = chordFromGesture(settings.key, i + 1, settings.variant).name;
+    el.title = el.lastChild.textContent;
+    return el;
+  }));
+  if (count) play(count); else showSuggestions(); // re-voice the sounding chord
 }
 
-function buildLegend() {
-  const playList = $("legend-play"), modList = $("legend-mod");
-  playList.replaceChildren(...[1, 2, 3, 4, 5].map((n) => li(n, buildChord(settings.key, DEGREE_BY_FINGERS[n]).name)));
-  const label = { "": "Dreiklang", "7": "7", sus4: "sus4", sus2: "sus2", add9: "add9", parallel: "Dur↔Moll" };
-  modList.replaceChildren(...[1, 2, 3, 4, 5].map((n) => li(n, label[MODIFIERS[n]])));
-  const [p, m] = lastGesture.split("|").map(Number);
-  markLegend(p, m);
-}
-
-function li(n, text) {
-  const el = document.createElement("li");
-  el.innerHTML = `<span class="n">${n}</span><span class="v"></span>`;
-  el.lastChild.textContent = text;
-  el.title = text;
-  return el;
-}
-
-function markLegend(p, m) {
-  [...$("legend-play").children].forEach((el, i) => el.classList.toggle("on", i + 1 === p));
-  [...$("legend-mod").children].forEach((el, i) => el.classList.toggle("on", i + 1 === m));
-}
+const VARIANTS = [["", "Dreiklang"], ["7", "7"], ["sus4", "sus4"], ["sus2", "sus2"], ["add9", "add9"], ["parallel", "Dur↔Moll"]];
+choiceGrid($("keys"), Array.from({ length: 12 }, (_, pc) => [String(pc), keyName(pc)]), "0", (v) => { settings.key = +v; rebuild(); });
+choiceGrid($("variants"), VARIANTS, "", (v) => { settings.variant = v; rebuild(); });
 
 function initSegs() {
   for (const seg of document.querySelectorAll(".seg[data-setting]")) {
@@ -240,10 +246,8 @@ const trackerModule = import("./tracker.js");
 const landmarkerReady = trackerModule.then((m) => m.loadLandmarker());
 landmarkerReady.catch(() => {}); // surfaced in start()
 
-const css = getComputedStyle(document.documentElement);
-colors = { play: css.getPropertyValue("--accent").trim(), mod: css.getPropertyValue("--accent-2").trim() };
-buildKeys();
-setKey(0);
+tipColor = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+rebuild();
 initSegs();
 
 // debug handle for verification in the console
