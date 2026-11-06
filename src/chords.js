@@ -70,21 +70,27 @@ export function buildChord(keyPc, degree, modifier = "") {
 }
 
 /**
- * Organ voicing: bass = root in [BASS_LO, BASS_LO+11], upper structure in close position near the
- * previous upper voicing (smallest total movement = smooth voice leading, shared notes keep sounding).
+ * Organ voicing. Bass walks up the scale like a ladder: tonic in [TONIC_LO, TONIC_LO+11], each step adds
+ * its scale interval, 8–10 add an octave – so every finger more is one scale step up, never a leap.
+ * Upper structure: close position nearest the previous upper voicing (smooth voice leading, shared
+ * notes keep sounding), always above the bass. The octave is carried by the bass alone, so 7 → 8
+ * moves the upper voices by a step instead of jumping an octave.
  */
-const BASS_LO = 40; // E2
+const TONIC_LO = 38; // D2 → C stays at C3; highest bass (C♯ key, step 10) = F4
 const UPPER_LO = 55; // G3
+const TOP_HI = 79; // keep the top voice at or below G5
 export function voice(chord, prevUpper = null) {
   if (!chord) return { bass: null, upper: [], notes: [] };
-  const bass = BASS_LO + ((chord.rootPc - (BASS_LO % 12) + 12) % 12);
+  const tonicPc = (chord.rootPc - MAJOR[chord.degree] + 12) % 12;
+  const tonic = TONIC_LO + ((tonicPc - (TONIC_LO % 12) + 12) % 12);
+  const bass = tonic + MAJOR[chord.degree] + 12 * (chord.octave ?? 0);
   const pcs = [...new Set(chord.intervals.map((i) => (chord.rootPc + i) % 12))];
   const ref = prevUpper && prevUpper.length ? prevUpper : [60, 64, 67];
   const refMean = ref.reduce((a, b) => a + b, 0) / ref.length;
-  let best = null, bestCost = Infinity;
+  let best = null, bestCost = Infinity, fallback = null;
   for (let inv = 0; inv < pcs.length; inv++) {
     const order = pcs.slice(inv).concat(pcs.slice(0, inv));
-    for (const startOct of [UPPER_LO, UPPER_LO + 12]) {
+    for (const startOct of [UPPER_LO, UPPER_LO + 12, UPPER_LO + 24]) {
       const notes = [];
       let n = startOct + ((order[0] - (startOct % 12) + 12) % 12);
       notes.push(n);
@@ -92,11 +98,13 @@ export function voice(chord, prevUpper = null) {
         n = n + ((order[k] - (n % 12) + 12) % 12 || 12);
         notes.push(n);
       }
-      if (notes[notes.length - 1] > 79) continue; // keep the top voice below G5
+      if (notes[0] <= bass) continue;
+      if (notes[notes.length - 1] > TOP_HI) { if (!fallback || notes[0] < fallback[0]) fallback = notes; continue; }
       const cost = movement(notes, ref) + Math.abs(notes.reduce((a, b) => a + b, 0) / notes.length - refMean) * 0.5;
       if (cost < bestCost) { bestCost = cost; best = notes; }
     }
   }
+  best ??= fallback; // only for the highest basses: lowest voicing above the bass
   return { bass, upper: best, notes: [bass, ...best] };
 }
 
@@ -117,10 +125,5 @@ export function chordFromGesture(keyPc, count, modifier = "") {
   return chord;
 }
 
-/** Voicing incl. octave shift; voice leading is computed in the base register so it stays smooth across octaves. */
-export function voiceStep(chord, prevUpper = null) {
-  const v = voice(chord, prevUpper);
-  if (!chord?.octave) return v;
-  const up = (n) => n + 12 * chord.octave;
-  return { bass: up(v.bass), upper: v.upper, notes: v.notes.map(up) };
-}
+/** Voicing for a gesture chord; the octave of 8–10 is handled inside voice() via chord.octave. */
+export const voiceStep = voice;

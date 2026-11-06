@@ -33,10 +33,25 @@ test("clicked variants", () => {
   assert.equal(name(0, 8, "7"), "Cmaj7′");
 });
 
-test("octave chords sound exactly 12 semitones higher", () => {
-  const base = voiceStep(chordFromGesture(0, 1), [60, 64, 67]);
-  const up = voiceStep(chordFromGesture(0, 8), [60, 64, 67]);
-  assert.deepEqual(up.notes, base.notes.map((n) => n + 12));
+test("1–10 is a ladder: bass climbs one scale step per finger, no leap at 7 → 8", () => {
+  const mean = (a) => a.reduce((x, y) => x + y) / a.length;
+  for (let key = 0; key < 12; key++)
+    for (const mod of MODIFIERS) {
+      let prev = null;
+      const bass = [];
+      for (let n = 1; n <= 10; n++) {
+        const v = voiceStep(chordFromGesture(key, n, mod), prev?.upper);
+        bass.push(v.bass);
+        assert.ok(v.upper[0] > v.bass, `${key}/${n}/${mod}: upper ${v.upper} above bass ${v.bass}`);
+        if (prev) {
+          const step = v.bass - prev.bass;
+          assert.ok(step === 1 || step === 2, `${key}/${n}/${mod}: bass step ${step}`);
+          assert.ok(Math.abs(mean(v.upper) - mean(prev.upper)) <= 5, `${key}/${n}/${mod}: upper jump ${prev.upper} → ${v.upper}`);
+        }
+        prev = v;
+      }
+      assert.equal(bass[7], bass[0] + 12, "8 = tonic one octave above 1");
+    }
 });
 
 test("every key × count × variant has a known name and a voicing in the organ range", () => {
