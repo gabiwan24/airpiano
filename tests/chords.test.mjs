@@ -33,25 +33,20 @@ test("clicked variants", () => {
   assert.equal(name(0, 8, "7"), "Cmaj7′");
 });
 
-test("1–10 is a ladder: bass climbs one scale step per finger, no leap at 7 → 8", () => {
-  const mean = (a) => a.reduce((x, y) => x + y) / a.length;
-  for (let key = 0; key < 12; key++)
-    for (const mod of MODIFIERS) {
-      let prev = null;
-      const bass = [];
-      for (let n = 1; n <= 10; n++) {
-        const v = voiceStep(chordFromGesture(key, n, mod), prev?.upper);
-        bass.push(v.bass);
-        assert.ok(v.upper[0] > v.bass, `${key}/${n}/${mod}: upper ${v.upper} above bass ${v.bass}`);
-        if (prev) {
-          const step = v.bass - prev.bass;
-          assert.ok(step === 1 || step === 2, `${key}/${n}/${mod}: bass step ${step}`);
-          assert.ok(Math.abs(mean(v.upper) - mean(prev.upper)) <= 5, `${key}/${n}/${mod}: upper jump ${prev.upper} → ${v.upper}`);
-        }
-        prev = v;
-      }
-      assert.equal(bass[7], bass[0] + 12, "8 = tonic one octave above 1");
-    }
+test("C major: root-position scale chords from C4 upward", () => {
+  const notes = Array.from({ length: 10 }, (_, i) => voiceStep(chordFromGesture(0, i + 1)).notes);
+  assert.deepEqual(notes, [
+    [60, 64, 67], [62, 65, 69], [64, 67, 71], [65, 69, 72], [67, 71, 74],
+    [69, 72, 76], [71, 74, 77], [72, 76, 79], [74, 77, 81], [76, 79, 83],
+  ]);
+});
+
+test("every key: each finger more = root one scale step up, 8 = 1 an octave higher", () => {
+  for (let key = 0; key < 12; key++) {
+    const roots = Array.from({ length: 10 }, (_, i) => voiceStep(chordFromGesture(key, i + 1)).notes[0]);
+    for (let i = 1; i < 10; i++) assert.ok([1, 2].includes(roots[i] - roots[i - 1]), `key ${key}: ${roots}`);
+    assert.equal(roots[7], roots[0] + 12);
+  }
 });
 
 test("every key × count × variant has a known name and a voicing in the organ range", () => {
@@ -66,13 +61,6 @@ test("every key × count × variant has a known name and a voicing in the organ 
         const pcs = new Set(c.intervals.map((i) => (c.rootPc + i) % 12));
         assert.deepEqual(new Set(v.upper.map((x) => x % 12)), pcs);
       }
-});
-
-test("voice leading C → F moves the upper voices by at most 4 semitones in total", () => {
-  const c = voiceStep(chordFromGesture(0, 1), null);
-  const f = voiceStep(chordFromGesture(0, 4), c.upper);
-  const moved = f.upper.reduce((s, n) => s + Math.min(...c.upper.map((x) => Math.abs(x - n))), 0);
-  assert.ok(moved <= 4, `moved ${moved}: ${c.upper} → ${f.upper}`);
 });
 
 test("next-chord suggestions follow functional harmony", () => {

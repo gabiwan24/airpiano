@@ -5,7 +5,7 @@ _Updated: 2026-11-06_
 v2 live on GitHub Pages (https://gabiwan24.github.io/airpiano/, repo gabiwan24/airpiano, deploys from `main` root on every push). Waiting for a real webcam test by the user.
 
 ## Works
-- 1–10 fingers (both hands summed) = all 7 scale-step chords, 8–10 an octave higher; bass climbs 1–2 semitones per finger (no leap at 7 → 8)
+- 1–10 fingers (both hands summed) = all 7 scale-step chords, 8–10 an octave higher; plain root-position triads from C4 upward (C major: C4-E4-G4 … E5-G5-B5)
 - Variant (triad/7/sus4/sus2/add9/major↔minor) and key by click
 - "Fits next" suggestions (strong/good) on the stage and in the 10-cell legend; stay visible after release
 - Organ: permanent tonewheel oscillators (36–96), 4 drawbar presets, Leslie, reverb, tanh limiter; Space = mute

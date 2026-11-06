@@ -7,7 +7,6 @@ const $ = (id) => document.getElementById(id);
 const settings = { key: 0, variant: "", preset: "jazz", leslie: "slow", frames: 2, swell: true };
 
 let organ = null;
-let upper = null; // previous upper voicing for voice leading
 let count = 0; // committed finger count (0 = silence)
 let lastChord = null; // last sounding chord – suggestions stay visible after release
 const stab = new Stabilizer(settings.frames);
@@ -17,8 +16,8 @@ const NOTE = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B�
 function play(n) {
   count = n;
   const chord = chordFromGesture(settings.key, n, settings.variant);
-  const v = voiceStep(chord, upper);
-  if (chord) { upper = v.upper; lastChord = chord; }
+  const v = voiceStep(chord);
+  if (chord) lastChord = chord;
   organ?.setNotes(v.notes);
   $("chord-name").textContent = chord ? chord.name : "–";
   $("chord-name").classList.toggle("live", !!chord);

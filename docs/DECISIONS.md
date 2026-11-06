@@ -10,3 +10,4 @@
 2026-11-05 – "Fits next" suggestions from the classical root-movement chart (iii→vi→ii/IV→V/vii°→I) – standard functional harmony, predictable for players.
 2026-11-05 – Dev server scripts/serve.py with Cache-Control: no-store – http.server let the browser serve stale CSS after edits.
 2026-11-06 – Bass walks the scale as a ladder (tonic D2–C♯3 + scale step, 8–10 +12), upper voices stay voice-led and above the bass – the old +12 shift of the whole voicing made 7 → 8 leap 13 semitones.
+2026-11-06 – Replaced the ladder/voice leading with classic root-position scale chords from the tonic nearest C4, no separate bass – user: voice leading did not sound like a scale; wants the textbook scale chords going up.
